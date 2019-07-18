@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aceproject.demo.teamPlayer">
+
+	<insert id="insert" parameterType="TeamPlayer"> 
+		INSERT INTO team_player (
+			team_id
+			, player_id
+			, level
+			, exp
+			, crt_date
+			, upd_date
+		) values ( 
+		 	#{teamId}
+		 	, #{playerId}
+		 	, #{level}
+		 	, #{exp}
+		 	, current_timestamp
+		 	, current_timestamp
+		 );
+	 </insert>
+	 
+	 <update id="update" parameterType="TeamPlayer">
+		UPDATE team_player
+		SET upd_date = current_timestamp
+			, level = #{level}
+			, exp = #{exp}
+		WHERE team_id = #{teamId}
+			AND player_id = #{playerId};
+	</update>
+
+	<select id="selectList" parameterType="int" resultType="TeamPlayer">
+		SELECT *
+		FROM team_player
+		where team_id = #{teamId};
+	</select>
+</mapper>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aceproject.demo.team">
+	
+	<insert id="insert" parameterType="Team"> 
+		INSERT INTO team (
+			team_id
+			, team_name
+			, last
+			, crt_date
+			, upd_date
+			, last_refresh_time
+		) values ( 
+		 	#{teamId}
+		 	, #{teamName}
+		 	, current_tiemstamp
+		 	, current_timestamp
+		 	, current_timestamp
+		 ) 
+	 </insert>
+
+	<update id="update" parameterType="Team">
+		UPDATE team
+		SET upd_date = current_timestamp
+			, team_name = #{teamName}
+			, last_refresh_time = #{lastRefreshTime}
+		WHERE team_id = #{teamId}
+	</update>
+
+	<select id="select" parameterType="int" resultType="Team">
+		SELECT *
+		FROM team
+		where team_id = #{teamId};
+	</select>
+
+</mapper>
