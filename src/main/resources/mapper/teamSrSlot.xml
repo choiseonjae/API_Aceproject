@@ -34,5 +34,12 @@
 		FROM team_sr_slot
 		WHERE team_id = #{teamId};
 	</select>
+	
+	<select id="select" parameterType="map"	resultType="TeamSrSlot">
+		SELECT *
+		FROM team_sr_slot
+		WHERE team_id = #{teamId}
+			AND slot_no = #{slotNo};
+	</select>
 
 </mapper>

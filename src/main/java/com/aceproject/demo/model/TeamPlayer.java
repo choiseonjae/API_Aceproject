@@ -18,5 +18,9 @@ public class TeamPlayer extends Dto {
 		this.level = level;
 		this.exp = exp;
 	}
+	
+	public void levelUp() {
+		level += 1;
+	}
 
 }

@@ -11,5 +11,7 @@ public interface TeamPlayerDao {
 	void update(TeamPlayer teamPlayer);
 	
 	List<TeamPlayer> list(int teamId);
+	
+	TeamPlayer get(int teamId, int playerId);
 
 }

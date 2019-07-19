@@ -1,6 +1,8 @@
 package com.aceproject.demo.dao.mybatis;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Repository;
 
@@ -32,8 +34,17 @@ public class TeamSrSlotDaoMybatis extends CommonDaoSupport implements TeamSrSlot
 		teamSrSlots.stream().forEach(s -> getSqlSession().update("com.aceproject.demo.teamSrSlot.update", s));
 	}
 
+	@Override
 	public List<TeamSrSlot> list(int teamId) {
 		return getSqlSession().selectList("com.aceproject.demo.teamSrSlot.selectList", teamId);
+	}
+	
+	@Override
+	public TeamSrSlot get(int teamId, int slotNo) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("teamId", teamId);
+		params.put("slotNo", slotNo);
+		return getSqlSession().selectOne("com.aceproject.demo.teamSrSlot.select", params);
 	}
 
 }

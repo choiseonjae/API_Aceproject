@@ -13,5 +13,7 @@ public interface TeamSrSlotDao {
 	void update(List<TeamSrSlot> teamSrSlots);
 
 	List<TeamSrSlot> list(int teamId);
+	
+	TeamSrSlot get(int teamId, int slotNo);
 
 }
