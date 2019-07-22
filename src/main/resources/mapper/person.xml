@@ -29,7 +29,16 @@
 		where person_id = #{personId};
 	</select>
 	
-	<select id="selectList" resultType="Person">
+	<select id="selectList" parameterType="map" resultType="Person">
+		SELECT *
+		FROM person
+		WHERE
+		<foreach item="item" collection="personIds" open="(" close=")" separator="OR">
+            person_id = #{item}
+    	</foreach>
+	</select>
+	
+	<select id="selectAll" resultType="Person">
 		SELECT *
 		FROM person
 	</select>

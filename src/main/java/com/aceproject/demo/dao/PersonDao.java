@@ -11,6 +11,8 @@ public interface PersonDao {
 	void update(Person person);
 
 	Person get(int personId);
+	
+	List<Person> list(List<Integer> personIds);
 
 	List<Person> getAll();
 

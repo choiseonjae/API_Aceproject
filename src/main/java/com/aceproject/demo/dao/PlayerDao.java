@@ -11,7 +11,7 @@ public interface PlayerDao {
 	void update(Player player);
 
 	Player get(int playerId);
-
+	
 	List<Player> getAll();
 
 }

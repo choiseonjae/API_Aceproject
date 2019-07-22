@@ -2,8 +2,10 @@ package com.aceproject.demo.service.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.joda.time.DateTime;
@@ -54,28 +56,31 @@ public class ScoutReportingServiceImpl implements ScoutReportingService {
 	private TeamPlayerDao teamPlayerDao;
 
 	private static final int REFRESH_HOURS = 1;
-
 	private static final int INIT_LEVEL = 1;
-
 	private static final int INIT_EXP = 1;
-
 	private static final int CONTRACT_AP = 50;
-
 	private static final int MAX_SLOT_NO = 4;
 
-	private static final int OPTION_DEFAULT_AP = 50;
+	@Override
+	public List<TeamSrSlotView> getSrSlots(int teamId) {
 
-	private static final int OPTION_ONE_AP = 100;
+		// 현재 slot 목록 조회
+		List<TeamSrSlot> srSlots = teamSrSlotDao.list(teamId);
 
-	private static final int OPTION_TWO_AP = 150;
+		// 갱신 필요 여부
+		if (isRefresh(teamId, srSlots))
+			return freeRefresh(teamId, ScoutReportOption.DEFAULT_OPTION);
 
-	private static final int COST_UP = 5;
-	
-	private static final boolean FREE_REFRESH = false;
-	
-	private static final boolean AP_REFRESH = false;
+		// 갱신 없이 client에서 필요한 정보들을 취합 후 반환
+		return srSlots.stream().map(srSlot -> {
 
-	// 영입
+			Player player = playerDao.get(srSlot.getPlayerId());
+
+			return new TeamSrSlotView(srSlot, player, personDao.get(player.getPersonId()));
+
+		}).collect(Collectors.toList());
+	}
+
 	@Override
 	@Transactional
 	public void contract(int teamId, int slotNo) {
@@ -83,11 +88,12 @@ public class ScoutReportingServiceImpl implements ScoutReportingService {
 		// 현재 slot 목록 조회
 		TeamSrSlot srSlot = teamSrSlotDao.get(teamId, slotNo);
 
-		// 이미 영입한 플레이어라면 예외 처리
-		if (srSlot.getContractYN().equals(YN.Y))
+		// TODO enum은 == 사용
+		// 이미 영입한 플레이어라면 예외 발생
+		if (YN.Y == srSlot.getContractYN())
 			throw new AlreadyContractPlayerException();
 
-		// 해당 slot을 영입 여부를 수정
+		// 해당 slot의 영입 여부를 Y로 수정 후 DB에 반영
 		srSlot.setContractYN(YN.Y);
 		teamSrSlotDao.update(srSlot);
 
@@ -109,55 +115,28 @@ public class ScoutReportingServiceImpl implements ScoutReportingService {
 
 	}
 
-	@Override
-	public List<TeamSrSlotView> getSrSlots(int teamId) {
-		
-		// 마지막 refresh 시간 조회
-		DateTime lastRfTime = teamDao.get(teamId).getLastRefreshTime();
-
-		// 현재 slot 목록 조회
-		List<TeamSrSlot> srSlots = teamSrSlotDao.list(teamId);
-
-		// 갱신이 필요하거나 slot 목록이 비어있을 경우 무료 refresh
-		if (isRefresh(lastRfTime) || srSlots.isEmpty())
-			return refresh(teamId, ScoutReportOption.DEFAULT_OPTION, FREE_REFRESH);
-
-		// 현재 상태 반환
-		return getTeamSrSlotViews(srSlots);
-	}
-
-
-	@Override
 	@Transactional
-	public List<TeamSrSlotView> refresh(int teamId, ScoutReportOption option, boolean isApRefresh) {
+	public List<TeamSrSlotView> refresh(int teamId, ScoutReportOption option) {
 
-		// 전체 person,player 정보 조회
-		List<Player> players = playerDao.getAll();
-		List<Person> persons = personDao.getAll();
-
-		// 원래의 경우 player의 DB가 크기 때문에, 쿼리로 옵션 필터를 하는게 낫지만,
-		// 현재 과제의 경우 그렇게 크지 않기 때문에 스트림으로 처리
-		// 특정 teamCode 존재 시
-		if (option.getTeamCode() != null)
-			players = players.stream().filter(p -> (p.getTeamCode().equals(option.getTeamCode())))
-					.collect(Collectors.toList());
-		// cost up 존재 시
-		if (option.isCostUp())
-			players = players.stream().filter(p -> (p.getCost() >= COST_UP)).collect(Collectors.toList());
-
-		// persons, players 가 3개 이하 일 경우
+		// player 같은 경우는 너무 많아서 쿼리로 필터하는 것이 낫다. 하지만 해당 과제에서는 그냥 전체를 받아서 사용
+		// person 같은 경우는 cache에서 가져와서 사용하는 경우가 있어서 그냥 전체 가져와서 필터 하는 것이 낫다.
+		List<Player> players = playerDao.getAll().stream().filter(option.getFilter()).collect(Collectors.toList());
+		List<Person> persons = personDao.list(players.stream().map(Player::getPersonId).distinct().collect(Collectors.toList()));
+		
+		// players 가 3개 이하 일 경우 예외 발생
 		if (players.size() < MAX_SLOT_NO || persons.size() < MAX_SLOT_NO)
 			throw new NotEnoughPlayerException();
 
 		// 선택된 사람을 보관할 리스트 생성
-		Map<Integer, Person> selectedPersonMap = new HashMap<>();
 		Map<Integer, Player> selectedPlayerMap = new HashMap<>();
 
 		// 슬롯수를 채울떄까지 player 선정
 		int slotNo = 1;
 
 		// 슬롯형태로 변환
-		List<TeamSrSlot> refreshSlots = new ArrayList<>();
+		List<TeamSrSlot> selectedSrSlots = new ArrayList<>();
+
+		Set<Integer> personIds = new HashSet<>();
 
 		// Max_Slot 크기 만큰 사람을 선택한다.
 		while (selectedPlayerMap.size() < MAX_SLOT_NO) {
@@ -166,76 +145,52 @@ public class ScoutReportingServiceImpl implements ScoutReportingService {
 			Player player = players.get((int) (Math.random() * players.size()));
 
 			// 중복 person이 아닌 경우에만 선택
-			if (!selectedPersonMap.containsKey(player.getPersonId())) {
+			if (personIds.contains(player.getPersonId()))
+				continue;
 
-				// srSlot 에 하나의 slot 추가
-				refreshSlots.add(new TeamSrSlot(teamId, slotNo++, player.getPlayerId(), YN.N));
+			// srSlot 에 하나의 slot 추가
+			selectedSrSlots.add(new TeamSrSlot(teamId, slotNo++, player.getPlayerId(), YN.N));
 
-				// slot에 추가된 플레이어 객체 추가
-				selectedPlayerMap.put(player.getPlayerId(), player);
+			// slot에 추가된 플레이어 객체 추가
+			selectedPlayerMap.put(player.getPlayerId(), player);
 
-				// slot에 추가된 플레이어의 사람 정보 추가
-				for (Person p : persons) {
-					if (p.getPersonId() == player.getPersonId()) {
-						selectedPersonMap.put(player.getPersonId(), p);
-						break;
-					}
-				}
+			// slot에 추가된 플레이어의 사람 정보 추가
+			personIds.add(player.getPersonId());
 
-			}
 		}
 
-		// 기존 slots 존재 여부 조회후 DB 반영 ( 기존 슬롯이 존재 하지 않으면 빈 List 반
+		// slot 사람들 정보 조회
+		// 선택된 사람들 정보를
+		final Map<Integer, Person> selectedPersonMap = personDao.list(new ArrayList<>(personIds)).stream()
+				.collect(Collectors.toMap(p -> p.getPersonId(), p -> p));
+
+		// 기존 slots 존재 여부 조회후 DB 반영 ( 기존 슬롯이 존재 하지 않으면 빈 List 반환 )
 		boolean isEmptySlot = teamSrSlotDao.list(teamId).isEmpty();
 		if (isEmptySlot)
-			teamSrSlotDao.insert(refreshSlots);
+			teamSrSlotDao.insert(selectedSrSlots);
 		else
-			teamSrSlotDao.update(refreshSlots);
-
-		// apRefresh 즉, 유료 refresh의 경우는 마지막 refresh 갱신 x
-		if (!isApRefresh) {
-			// 마지막 갱신 시간 갱신
-			Team team = teamDao.get(teamId);
-			team.setLastRefreshTime(DateTime.now());
-			teamDao.update(team);
-		}
+			teamSrSlotDao.update(selectedSrSlots);
 
 		// 클라이언트가 필요한 player, person, teamsrSlot 정보를 모아서 반환
-		return refreshSlots.stream().map(s -> {
+		return selectedSrSlots.stream().map(s -> {
 			Player player = selectedPlayerMap.get(s.getPlayerId());
 			Person person = selectedPersonMap.get(player.getPersonId());
 
 			return new TeamSrSlotView(s, player, person);
 		}).collect(Collectors.toList());
+	}
 
-//		// view 형태로 변환후 반환
-//		Map<Integer, Player> selectedPlayerMap = selectedPlayers.stream()
-//				.collect(Collectors.toMap(p -> p.getPlayerId(), p -> p));
-//
-//		Map<Integer, Person> selectedPersons = persons.stream()
-//				.filter(p -> selectedPersonIdMap.contains(p.getPersonId()))
-//				.collect(Collectors.toMap(p -> p.getPersonId(), p -> p));
+	// 무료 refresh
+	@Override
+	@Transactional
+	public List<TeamSrSlotView> freeRefresh(int teamId, ScoutReportOption option) {
 
-//		return refreshSlots.stream().map(s -> {
-//			Player player = selectedPlayerMap.get(s.getPlayerId());
-//			Person person = selectedPersonMap.get(player.getPersonId());
-//
-//			return new TeamSrSlotView(s, player, person);
-//		}).collect(Collectors.toList());
+		// 마지막 갱신 시간 갱신
+		Team team = teamDao.get(teamId);
+		team.setLastRefreshTime(DateTime.now());
+		teamDao.update(team);
 
-		///////////////////////////////////////////////////////////////////
-
-		// 밑의 코드를 위의 주석 처리 형태로도 사용 가능
-		// 결과적으로는 밑의 코드 위의 코드 둘다 아닌 상태임.
-//		List<TeamSrSlotView> slotSrViews = new ArrayList<>();
-//		refreshSlots.stream().forEach(s -> {
-//			Player player = selectedPlayerMap.get(s.getPlayerId());
-//			Person person = selectedPersons.get(player.getPersonId());
-//
-//			slotSrViews.add(new TeamSrSlotView(s, player, person));
-//		});
-
-//		return slotSrViews;
+		return refresh(teamId, option);
 	}
 
 	// 유료 refresh
@@ -243,43 +198,32 @@ public class ScoutReportingServiceImpl implements ScoutReportingService {
 	@Transactional
 	public List<TeamSrSlotView> apRefresh(int teamId, ScoutReportOption option) {
 
-		// 차감 시 필요한 ap 계산
-		int refreshtAp = OPTION_ONE_AP;
-
-		// cost up, 특정 teamCode 필터 -> 150
-		// cost up x, 특정 teamCode 필터 x -> 50
-		if (option.isCostUp() && option.getTeamCode() != null)
-			refreshtAp = OPTION_TWO_AP;
-		else if (!option.isCostUp() && option.getTeamCode() == null)
-			refreshtAp = OPTION_DEFAULT_AP;
-
 		// ap 차감
-		deductAp(teamId, refreshtAp);
+		deductAp(teamId, option.getAp());
 
 		// 새로 고침 ( 유료 새로 고침 )
-		return refresh(teamId, option, AP_REFRESH);
+		List<TeamSrSlotView> srSlotViews = refresh(teamId, option);
+
+		return srSlotViews;
 	}
 
-	// teamSrSlotView를 생성 후 반환
-	private List<TeamSrSlotView> getTeamSrSlotViews(List<TeamSrSlot> srSlots) {
+	// 갱신 필요 여부 체크
+	private boolean isRefresh(int teamId, List<TeamSrSlot> srSlots) {
 
-		return srSlots.stream().map(srSlot -> {
+		// slot 목록이 비어있으면 갱신 필요
+		if (srSlots.isEmpty())
+			return true;
 
-			Player player = playerDao.get(srSlot.getPlayerId());
+		// 마지막 갱신 시간 조회
+		DateTime lastRfTime = teamDao.get(teamId).getLastRefreshTime();
 
-			return new TeamSrSlotView(srSlot, player, personDao.get(player.getPersonId()));
-
-		}).collect(Collectors.toList());
-	}
-
-	// refresh 필요 여부 체크
-	private boolean isRefresh(DateTime lastRefreshTime) {
-		return (Hours.hoursBetween(lastRefreshTime, DateTime.now()).getHours() >= REFRESH_HOURS);
+		// 마지막 갱신 시간이 현재 시간 기준으로 갱신 시간을 넘겼으면 갱신
+		return (Hours.hoursBetween(lastRfTime, DateTime.now()).getHours() >= REFRESH_HOURS);
 	}
 
 	// ap 차감 및 예외 처리
 	private void deductAp(int teamId, int deductAp) {
-		
+
 		// account 잔고 조회
 		Account account = accountDao.get(teamId);
 
@@ -291,6 +235,5 @@ public class ScoutReportingServiceImpl implements ScoutReportingService {
 		account.setAp(account.getAp() - deductAp);
 		accountDao.update(account);
 	}
-
 
 }

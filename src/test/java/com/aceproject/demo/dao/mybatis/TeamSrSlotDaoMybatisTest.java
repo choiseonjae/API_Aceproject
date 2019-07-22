@@ -1,17 +1,21 @@
 package com.aceproject.demo.dao.mybatis;
 
+import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.aceproject.demo.dao.TeamSrSlotDao;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Transactional
 public class TeamSrSlotDaoMybatisTest {
 
-//	@Autowired
-//	private TeamSrSlotDao teamSrSlotDao;
+	@Autowired
+	private TeamSrSlotDao teamSrSlotDao;
 //
 //	@Test
 //	public void daoTest() throws InterruptedException {
@@ -58,4 +62,10 @@ public class TeamSrSlotDaoMybatisTest {
 //
 //	}
 
+	@Test
+	public void test_get() {
+		int teamId = 1;
+
+		teamSrSlotDao.list(teamId).forEach(System.out::println);
+	}
 }

@@ -11,7 +11,7 @@ public interface ScoutReportingService {
 	
 	List<TeamSrSlotView> getSrSlots(int teamId);
 	
-	List<TeamSrSlotView> refresh(int teamId, ScoutReportOption option, boolean isApRefresh);
+	List<TeamSrSlotView> freeRefresh(int teamId, ScoutReportOption option);
 	
 	List<TeamSrSlotView> apRefresh(int teamId, ScoutReportOption option);
 

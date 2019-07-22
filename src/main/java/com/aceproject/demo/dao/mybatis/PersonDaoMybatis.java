@@ -1,6 +1,8 @@
 package com.aceproject.demo.dao.mybatis;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Repository;
 
@@ -29,8 +31,15 @@ public class PersonDaoMybatis extends CommonDaoSupport implements PersonDao {
 	}
 
 	@Override
+	public List<Person> list(List<Integer> personIds) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("personIds", personIds);
+		return getSqlSession().selectList("com.aceproject.demo.person.selectList", params);
+	}
+
+	@Override
 	public List<Person> getAll() {
-		return getSqlSession().selectList("com.aceproject.demo.person.selectList");
+		return getSqlSession().selectList("com.aceproject.demo.person.selectAll");
 
 	}
 

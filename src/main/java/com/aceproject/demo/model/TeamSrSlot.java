@@ -2,9 +2,11 @@ package com.aceproject.demo.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString(callSuper = true)
 public class TeamSrSlot extends Dto {
 	private int teamId;
 	private int slotNo;

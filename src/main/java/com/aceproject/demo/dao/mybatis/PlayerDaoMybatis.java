@@ -25,10 +25,12 @@ public class PlayerDaoMybatis extends CommonDaoSupport implements PlayerDao {
 	public Player get(int playerId) {
 		return getSqlSession().selectOne("com.aceproject.demo.player.select", playerId);
 	}
-
+	
+	
 	@Override
 	public List<Player> getAll() {
-		return getSqlSession().selectList("com.aceproject.demo.player.selectList");
+		return getSqlSession().selectList("com.aceproject.demo.player.selectAll");
 	}
+
 
 }
