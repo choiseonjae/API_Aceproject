@@ -28,6 +28,15 @@
 		WHERE team_id = #{teamId}
 			AND player_id = #{playerId};
 	</update>
+	
+	<delete id="delete" parameterType="map">
+		DELETE FROM team_player
+		WHERE team_id = #{teamId} 
+			AND
+			<foreach item="item" collection="playerIds" open="(" close=")" separator="OR">
+				 player_id = #{item}
+	    	</foreach> 
+	</delete>
 
 	<select id="selectList" parameterType="int" resultType="TeamPlayer">
 		SELECT *

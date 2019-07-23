@@ -8,6 +8,8 @@
 		, person_id
 		, team_code
 		, cost
+		, year
+		, player_type
 		, crt_date
 		, upd_date
 		) values (
@@ -15,6 +17,9 @@
 		, #{personId}
 		, #{teamCode}
 		, #{cost}
+		, #{year}
+		, #{playerType}
+		, crt_date
 		, current_timestamp
 		, current_timestamp
 		)
@@ -34,6 +39,26 @@
 		FROM
 		player
 		where player_id = #{playerId};
+	</select>
+	
+	<select id="selectYearList" parameterType="map" resultType="Player">
+		SELECT *
+		FROM player
+		<if test ="!years.isEmpty()">
+			WHERE 		
+			<foreach item="item" collection="years" open="(" close=")" separator="OR">
+	            year = #{item}
+	    	</foreach>
+    	</if>
+	</select>
+	
+	<select id="selectList" parameterType="map" resultType="Player">
+		SELECT *
+		FROM player
+		WHERE 		
+		<foreach item="item" collection="playerIds" open="(" close=")" separator="OR">
+            player_id = #{item}
+    	</foreach>
 	</select>
 
 	<select id="selectAll" resultType="Player">
