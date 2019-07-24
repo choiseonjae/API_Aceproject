@@ -15,8 +15,13 @@ public class AccountDaoMybatis extends CommonDaoSupport implements AccountDao {
 	}
 
 	@Override
-	public void update(Account account) {
-		getSqlSession().update("com.aceproject.demo.account.update", account);
+	public void updateAp(Account account) {
+		getSqlSession().update("com.aceproject.demo.account.updateAp", account);
+	}
+	
+	@Override
+	public void updateCash(Account account) {
+		getSqlSession().update("com.aceproject.demo.account.updateCash", account);
 	}
 
 	@Override

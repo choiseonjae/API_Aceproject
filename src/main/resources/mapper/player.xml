@@ -41,10 +41,16 @@
 		where player_id = #{playerId};
 	</select>
 	
+	<select id="selectTypeList" parameterType="int" resultType="Player">
+		SELECT *
+		FROM player
+		WHERE player_type = #{playerType}; 		
+	</select>
+	
 	<select id="selectYearList" parameterType="map" resultType="Player">
 		SELECT *
 		FROM player
-		<if test ="!years.isEmpty()">
+		<if test ="years != null">
 			WHERE 		
 			<foreach item="item" collection="years" open="(" close=")" separator="OR">
 	            year = #{item}

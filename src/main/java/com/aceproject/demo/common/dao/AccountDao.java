@@ -6,7 +6,9 @@ public interface AccountDao {
 	
 	void insert(Account account);
 	
-	void update(Account account);
+	void updateAp(Account account);
+	
+	void updateCash(Account account);
 	
 	Account get(int teamId);
 

@@ -38,7 +38,7 @@ public class AccountDaoMybatisTest extends CommonDaoSupport {
 
 		// 수정
 		account.setAp(ap - 50);
-		accountDao.update(account);
+		accountDao.updateAp(account);
 
 		// 출력
 		printAccount("update", accountDao.get(teamId));

@@ -3,6 +3,7 @@ package com.aceproject.demo.trade.service.impl;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.aceproject.demo.common.dao.PersonDao;
 import com.aceproject.demo.common.dao.PlayerDao;
 import com.aceproject.demo.common.dao.TeamPlayerDao;
+import com.aceproject.demo.common.exception.NotEnoughPlayerException;
 import com.aceproject.demo.common.model.Person;
 import com.aceproject.demo.common.model.Player;
 import com.aceproject.demo.common.model.TeamPlayer;
+import com.aceproject.demo.common.service.AccountService;
 import com.aceproject.demo.trade.exception.AlreadyTradedPlayerException;
+import com.aceproject.demo.trade.exception.NotEnoughConditionPlayerException;
+import com.aceproject.demo.trade.model.PlayerType;
+import com.aceproject.demo.trade.model.PlayerTypeCombinator;
 import com.aceproject.demo.trade.model.TradeOption;
 import com.aceproject.demo.trade.model.TradePlayerView;
 import com.aceproject.demo.trade.service.TradeService;
@@ -31,81 +37,86 @@ public class TradeServiceImpl implements TradeService {
 
 	@Autowired
 	private PersonDao personDao;
+	
+	@Autowired
+	private AccountService accountService;
 
 	private static final int MIN_TRADE_PLAYER_COUNT = 2;
 
 	@Override
 	public List<TradePlayerView> getTradePlayers(int teamId) {
 
-		// 팀 아이디로 현재 teamplayer DB 반환
-		List<TeamPlayer> teamPlayers = teamPlayerDao.list(teamId);
-
-		// 플레이어가 트레이드에 필요한 선수만큼 소유하고 있지 않은 경우 예외 발생
-		if (teamPlayers.size() < MIN_TRADE_PLAYER_COUNT) {
-			throw new AlreadyTradedPlayerException();
-		}
-
-		// team이 가지고 있는 palyerId 만을 추출하여, DB에 쿼리를 날려 가져옴
-		// 전체를 가져오지 않고, 필요한 정보만을 쿼리를 통해 가져옴.
-		List<Integer> playerIds = teamPlayers.stream().map(s -> s.getPlayerId()).collect(Collectors.toList());
-		List<Player> players = playerDao.list(playerIds);
-	
 		// 모든 사람 정보를 가져와서 teamPlayer의 사람 정보만을 추출
-		Map<Integer, Person> selectedPersonsMap = personDao.getAll().stream().collect(Collectors.toMap(p -> p.getPersonId(), p -> p));
+		List<Person> persons = personDao.getAll();
+		Map<Integer, Person> selectedPersonsMap = persons.stream()
+				.collect(Collectors.toMap(p -> p.getPersonId(), p -> p));
 
-		// team이 소유하고 있는 선수의 Person 객체와 Player 객체를 View 형태로 반환
-		return players.stream().map(p -> {
-			TradePlayerView tradePlayerView = new TradePlayerView();
-			tradePlayerView.setPerson(selectedPersonsMap.get(p.getPersonId()));
-			tradePlayerView.setPlayer(p);
-			return tradePlayerView;
-		}).collect(Collectors.toList());
-		
+		// 팀이 현재 보유하고 있는 player를 가져와서 client view 형태로 반환
+		List<TeamPlayer> teamPlayers = teamPlayerDao.list(teamId);
+		List<Integer> teamPlayerIds = teamPlayers.stream().map(s -> s.getPlayerId()).collect(Collectors.toList());
+		List<Player> players = playerDao.list(teamPlayerIds);
+
+		return players.stream().map(p -> new TradePlayerView(selectedPersonsMap.get(p.getPersonId()), p))
+				.collect(Collectors.toList());
+
 	}
 
 	@Override
 	@Transactional
-	public TradePlayerView trade(int teamId, List<Integer> playerIds, TradeOption tradeOption) {
-		
-		tradeOption.checkException();
-		// 랜덤선수로 뽑고 팀플레이어에 추가
-		Player selectedPlayer = selectCombinedPlayer(playerIds, tradeOption);
+	public TradePlayerView trade(int teamId, List<Integer> playerIds, TradeOption option) {
+
+		// 예외 : 플레이어가 트레이드에 필요한 선수 소유 여부 확인
+		if (playerIds.size() < MIN_TRADE_PLAYER_COUNT)
+			throw new NotEnoughPlayerException();
+
+		// 예외 : 필요한 년도 설정 수 확인
+		option.checkYearException();
+
+		// 예외 : 트레이드 할 선수 목록을 현재 플레이어가 소유 여부 확인
+		Set<Integer> playerIdSet = teamPlayerDao.list(teamId).stream().map(p -> p.getPlayerId()).collect(Collectors.toSet());
+		playerIds.forEach(p -> {
+			if (!playerIdSet.contains(p))
+				throw new AlreadyTradedPlayerException();
+		});
+
+		// 조합법에 따라 선수를 뽑음
+		Player selectedPlayer = selectPlayer(playerIds, option);
 
 		// 선택한 선수 DB에 반영
 		TeamPlayer teamPlayer = new TeamPlayer(teamId, selectedPlayer.getPlayerId());
 		addTeamPlayer(teamPlayer);
-
-		//이미 트레이드한 선수에 대한 예외 처리
-		Set<Integer> playerIdSet = teamPlayerDao.list(teamId).stream().map( p -> p.getPlayerId() ).collect(Collectors.toSet());
 		
-		playerIds.stream().forEach( p -> {
-			if(!playerIdSet.contains(p))
-				throw new AlreadyTradedPlayerException();
-		});
+		accountService.deductCash(teamId, option.getDeductCash());
 
 		// 선수들에 대한 아이디를 받아 팀플레이어에서 삭제
 		teamPlayerDao.delete(teamId, playerIds);
 
-		TradePlayerView tradePlayerView = new TradePlayerView();
-		tradePlayerView.setPerson(personDao.get(selectedPlayer.getPersonId()));
-		tradePlayerView.setPlayer(selectedPlayer);
-		return tradePlayerView;
+		// client view 형태로 반환
+		return new TradePlayerView(personDao.get(selectedPlayer.getPersonId()), selectedPlayer);
 
 	}
 
-	public Player selectCombinedPlayer(List<Integer> playerIds, TradeOption option) {
-		option.checkException();
+	public Player selectPlayer(List<Integer> playerIds, TradeOption option) {
+
+		// 해당 하는 연도의 선수만 조회
 		List<Player> players = playerDao.yearList(option.getYears());
 		
-		int rand = -1;
-		while (true) {
-			rand = (int) (Math.random() * players.size());
+		// 트레이드 재료인 선수들을 조합하여 하나의 등급을 선택
+		List<PlayerType> playerTypes = playerDao.list(playerIds).stream().map(p -> p.getPlayerType()).collect(Collectors.toList());
+		PlayerTypeCombinator ptc = new PlayerTypeCombinator(); 
+		PlayerType selectedPlayerType = ptc.combinate(playerTypes, option.isPercentUp());
 
-			if (playerIds.contains(players.get(rand).getPlayerId()))
-				continue;
-			break;
-		}
-		return players.get(rand);
+		// 선택된 등급 && 재료로 사용된 플레이어 필터
+		Predicate<Player> playerTypeFilter = p -> p.getPlayerType() == selectedPlayerType;
+		Predicate<Player> playerFilter = p -> playerIds.contains(p.getPlayerId());
+		players = players.stream().filter(playerFilter.and(playerTypeFilter)).collect(Collectors.toList());
+
+		// 예외 : 필터 후 선택할 선수가 존재 하지 않는 경우
+		if (players.isEmpty())
+			throw new NotEnoughConditionPlayerException();
+
+		int selectedIdx = (int) (Math.random() * players.size());
+		return players.get(selectedIdx);
 
 	}
 

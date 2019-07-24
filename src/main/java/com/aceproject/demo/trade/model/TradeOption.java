@@ -12,13 +12,18 @@ import lombok.Setter;
 public class TradeOption {
 
 	private Set<Integer> years;
+	private boolean percentUp;
 	
+	private static final int PERCENT_UP_CASH = 10;
 	private static final int MIN_YEAR_COUNT = 2;
 	
-	public void checkException() {
-		if((years != null || !years.isEmpty()) && years.size() < MIN_YEAR_COUNT) {
+	public void checkYearException() {
+		if(years != null && years.size() < MIN_YEAR_COUNT) {
 			throw new NotEnoughTradeYearException();
 		}
 	}
 
+	public int getDeductCash() {
+		return percentUp? PERCENT_UP_CASH : 0;
+	}
 }

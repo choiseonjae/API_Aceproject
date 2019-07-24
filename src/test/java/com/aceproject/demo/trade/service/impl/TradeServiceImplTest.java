@@ -43,7 +43,7 @@ public class TradeServiceImplTest {
 			System.out.println(t.getPlayerId() + " : " + t.getName());
 	}
 
-//	@Test
+	@Test
 	public void tradeTest() {
 		
 		for (TeamPlayer p : teamPlayerDao.list(1))
@@ -51,24 +51,28 @@ public class TradeServiceImplTest {
 		System.out.println();
 		
 		List<Integer> list = new ArrayList<>();
-		list.add(7);
-		list.add(9);
-		list.add(10);
-		list.add(11);
-
-		//tradeService.trade(1, list);
+		list.add(14);
+		list.add(16);
 		
-		for (TeamPlayer p : teamPlayerDao.list(1))
-			System.out.print(p.getPlayerId() + " ");
-		System.out.println();
+		TradeOption option = new TradeOption();
+		Set<Integer> years = new HashSet<>();
+		years.add(2019);
+		years.add(2018);
+		option.setYears(years);
+		option.setPercentUp(false);
+			
+
+		tradeService.trade(1, list, option);
+		
 	}
 
-	@Test
+//	@Test
 	public void selected() {
 		
 		TradeOption option = new TradeOption();
 		Set<Integer> years = new HashSet<>();
 		years.add(2019);
+		years.add(2018);
 		option.setYears(years);
 		
 		List<Integer> list = new ArrayList<>();

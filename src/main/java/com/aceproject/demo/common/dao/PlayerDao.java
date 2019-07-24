@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.aceproject.demo.common.model.Player;
+import com.aceproject.demo.trade.model.PlayerType;
 
 public interface PlayerDao {
 
@@ -12,6 +13,8 @@ public interface PlayerDao {
 	void update(Player player);
 
 	Player get(int playerId);
+	
+	List<Player> typeList(PlayerType playerTypeEnum);
 	
 	List<Player> yearList(Set<Integer> years);
 	

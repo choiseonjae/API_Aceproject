@@ -1,28 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aceproject.demo.account">
-
+	
+	<!-- TODO 캐시 빠짐 -->
 	<insert id="insert" parameterType="Account"> 
 		INSERT INTO account (
 			team_id
 			, ap
+			, cash
 			, crt_date
 			, upd_date
 		) values ( 
 		 	#{teamId}
 		 	, #{ap}
+		 	, #{cash}
 		 	, current_timestamp
 		 	, current_timestamp
 		 ) 
 	 </insert>
 
-	<update id="update" parameterType="Account">
+	<update id="updateAp" parameterType="Account">
 		UPDATE account
 		SET	upd_date = current_timestamp
 			, ap = #{ap}
 		WHERE team_id = #{teamId}
-	</update>	
+	</update>
 	
+	<update id="updateCash" parameterType="Account">
+		UPDATE account
+		SET	upd_date = current_timestamp
+			, cash = #{cash}
+		WHERE team_id = #{teamId}
+	</update>	
 	<select id="select" parameterType="int" resultType="Account">
 		SELECT *
 		FROM account
