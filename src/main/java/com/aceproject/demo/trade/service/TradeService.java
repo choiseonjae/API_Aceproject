@@ -16,7 +16,9 @@ public interface TradeService {
 	List<TradePlayerView> getTradePlayers(int teamId);
 
 	/**
-	 * team이 소유한 선수들을 소모하여, 새로운 선수를 생성한다.
+	 * team이 소유한 player들을 재료로 사용하여, 새로운 선수를 영입한다.
+	 * player는 2 ~ 4까지 재료로 사용가능하며, 새로운 선수는 재료 player의 등급들의 조합법에 따른 
+	 * 확률을 적용하여 새로운 선수를 영입한다.
 	 * 
 	 * @param teamId
 	 * @param playerIds

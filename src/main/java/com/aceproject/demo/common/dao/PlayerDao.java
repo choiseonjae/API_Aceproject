@@ -14,8 +14,6 @@ public interface PlayerDao {
 
 	Player get(int playerId);
 	
-	List<Player> typeList(PlayerType playerTypeEnum);
-	
 	List<Player> yearList(Set<Integer> years);
 	
 	List<Player> list(List<Integer> playerIds);

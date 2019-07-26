@@ -1,6 +1,7 @@
 package com.aceproject.demo.trade.api;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,16 +23,14 @@ public class TradeController {
 
 	@GetMapping("/list")
 	public List<TradePlayerView> getTradePlayers(@RequestParam(value = "teamId") int teamId) {
-		System.out.println(teamId);
 		return tradeService.getTradePlayers(teamId);
 	}
-	
+
 	@PostMapping("")
-	public TradePlayerView trade(@RequestParam int teamId, @RequestParam List<Integer> playerIds, @RequestParam(required = false)TradeOption tradeOption ){
-		if(tradeOption == null)
-			tradeOption = new TradeOption();
-		return tradeService.trade(teamId, playerIds, tradeOption);
+	public TradePlayerView trade(@RequestParam int teamId, @RequestParam List<Integer> playerIds,
+			@RequestParam(required = false) Set<Integer> years, @RequestParam Boolean percentUp,
+			@RequestParam boolean costUp) {
+		return tradeService.trade(teamId, playerIds, new TradeOption(years, percentUp, costUp));
 	}
-	
-	
+
 }

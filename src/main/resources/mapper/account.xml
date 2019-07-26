@@ -31,7 +31,8 @@
 		SET	upd_date = current_timestamp
 			, cash = #{cash}
 		WHERE team_id = #{teamId}
-	</update>	
+	</update>
+		
 	<select id="select" parameterType="int" resultType="Account">
 		SELECT *
 		FROM account

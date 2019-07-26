@@ -54,12 +54,10 @@ public class TradeServiceImplTest {
 		list.add(14);
 		list.add(16);
 		
-		TradeOption option = new TradeOption();
 		Set<Integer> years = new HashSet<>();
 		years.add(2019);
 		years.add(2018);
-		option.setYears(years);
-		option.setPercentUp(false);
+		TradeOption option = new TradeOption(years, false, false);
 			
 
 		tradeService.trade(1, list, option);
@@ -69,11 +67,10 @@ public class TradeServiceImplTest {
 //	@Test
 	public void selected() {
 		
-		TradeOption option = new TradeOption();
 		Set<Integer> years = new HashSet<>();
 		years.add(2019);
 		years.add(2018);
-		option.setYears(years);
+		TradeOption option = new TradeOption(years, false, false);
 		
 		List<Integer> list = new ArrayList<>();
 		list.add(7);

@@ -20,8 +20,7 @@ import com.aceproject.demo.common.model.TeamPlayer;
 import com.aceproject.demo.common.service.AccountService;
 import com.aceproject.demo.trade.exception.AlreadyTradedPlayerException;
 import com.aceproject.demo.trade.exception.NotEnoughConditionPlayerException;
-import com.aceproject.demo.trade.model.PlayerType;
-import com.aceproject.demo.trade.model.PlayerTypeCombinator;
+import com.aceproject.demo.trade.model.TradeCombinator;
 import com.aceproject.demo.trade.model.TradeOption;
 import com.aceproject.demo.trade.model.TradePlayerView;
 import com.aceproject.demo.trade.service.TradeService;
@@ -92,37 +91,38 @@ public class TradeServiceImpl implements TradeService {
 		teamPlayerDao.delete(teamId, playerIds);
 
 		// client view 형태로 반환
-		return new TradePlayerView(personDao.get(selectedPlayer.getPersonId()), selectedPlayer);
+		Person person = personDao.get(selectedPlayer.getPersonId());
+		return new TradePlayerView(person, selectedPlayer);
 
 	}
 
-	public Player selectPlayer(List<Integer> playerIds, TradeOption option) {
+	private Player selectPlayer(List<Integer> playerIds, TradeOption option) {
 
+		// TODO DB콜 줄이기 vs 두번 조회하기 뭐가 더 좋은가?
 		// 해당 하는 연도의 선수만 조회
-		List<Player> players = playerDao.yearList(option.getYears());
+		List<Player> yearPlayers = playerDao.yearList(option.getYears());
 		
 		// 트레이드 재료인 선수들을 조합하여 하나의 등급을 선택
-		List<PlayerType> playerTypes = playerDao.list(playerIds).stream().map(p -> p.getPlayerType()).collect(Collectors.toList());
-		PlayerTypeCombinator ptc = new PlayerTypeCombinator(); 
-		PlayerType selectedPlayerType = ptc.combinate(playerTypes, option.isPercentUp());
+		List<Player> players = playerDao.list(playerIds);
 
-		// 선택된 등급 && 재료로 사용된 플레이어 필터
-		Predicate<Player> playerTypeFilter = p -> p.getPlayerType() == selectedPlayerType;
-		Predicate<Player> playerFilter = p -> playerIds.contains(p.getPlayerId());
-		players = players.stream().filter(playerFilter.and(playerTypeFilter)).collect(Collectors.toList());
+		// 선택된 등급 && 재료로 사용된 플레이어 중 필터
+		TradeCombinator combinator = new TradeCombinator(players, option); 
+		Predicate<Player> tradeFilter = combinator.tradeFilter();
+		Predicate<Player> playerFilter = p -> !playerIds.contains(p.getPlayerId());
+		yearPlayers = yearPlayers.stream().filter(playerFilter.and(tradeFilter)).collect(Collectors.toList());
 
-		// 예외 : 필터 후 선택할 선수가 존재 하지 않는 경우
-		if (players.isEmpty())
+		// 예외 : 필터 후 영입 가능한 선수가 존재 하지 않는 경우
+		if (yearPlayers.isEmpty())
 			throw new NotEnoughConditionPlayerException();
 
-		int selectedIdx = (int) (Math.random() * players.size());
-		return players.get(selectedIdx);
+		int selectedIdx = (int) (Math.random() * yearPlayers.size());
+		return yearPlayers.get(selectedIdx);
 
 	}
 
 	private void addTeamPlayer(TeamPlayer teamPlayer) {
 		TeamPlayer check = teamPlayerDao.get(teamPlayer.getTeamId(), teamPlayer.getPlayerId());
-		if (check == null)
+		if (check == null) 
 			teamPlayerDao.insert(teamPlayer);
 		else {
 			teamPlayer.levelUp();

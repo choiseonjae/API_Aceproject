@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 import com.aceproject.demo.common.dao.PlayerDao;
 import com.aceproject.demo.common.model.Player;
 import com.aceproject.demo.common.support.CommonDaoSupport;
-import com.aceproject.demo.trade.model.PlayerType;
 
 @Repository
 public class PlayerDaoMybatis extends CommonDaoSupport implements PlayerDao {
@@ -28,12 +27,6 @@ public class PlayerDaoMybatis extends CommonDaoSupport implements PlayerDao {
 	@Override
 	public Player get(int playerId) {
 		return getSqlSession().selectOne("com.aceproject.demo.player.select", playerId);
-	}
-	
-	@Override
-	public List<Player> typeList(PlayerType playerTypeEnum) {
-		int playerType = playerTypeEnum.intValue();
-		return getSqlSession().selectList("com.aceproject.demo.player.selectTypeList", playerType);
 	}
 	
 	@Override

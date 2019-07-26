@@ -41,12 +41,6 @@
 		where player_id = #{playerId};
 	</select>
 	
-	<select id="selectTypeList" parameterType="int" resultType="Player">
-		SELECT *
-		FROM player
-		WHERE player_type = #{playerType}; 		
-	</select>
-	
 	<select id="selectYearList" parameterType="map" resultType="Player">
 		SELECT *
 		FROM player
