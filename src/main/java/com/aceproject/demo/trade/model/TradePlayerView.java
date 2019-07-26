@@ -4,9 +4,7 @@ import com.aceproject.demo.common.model.Person;
 import com.aceproject.demo.common.model.Player;
 
 import lombok.AllArgsConstructor;
-import lombok.Setter;
 
-@Setter
 @AllArgsConstructor
 public class TradePlayerView {
 

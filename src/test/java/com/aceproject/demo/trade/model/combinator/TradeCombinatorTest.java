@@ -1,24 +1,42 @@
-//package com.aceproject.demo.trade.model;
-//
-//import java.util.ArrayList;
-//import java.util.Arrays;
-//import java.util.HashMap;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.function.Predicate;
-//
-//import org.junit.Test;
-//
-//import com.aceproject.demo.common.model.Player;
-//
-////@RunWith(SpringRunner.class)
-////@SpringBootTest
-////@Transactional
-//public class TradeCombinatorTest {
-//	
-//	@Test
-//	public void combinateTest() {
-//		
+package com.aceproject.demo.trade.model.combinator;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.aceproject.demo.common.model.Player;
+import com.aceproject.demo.trade.model.PlayerType;
+import com.aceproject.demo.trade.model.combinator.playertype.TypeProbability;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@Transactional
+public class TradeCombinatorTest {
+
+	@Autowired
+	List<TypeProbability> typeProbs;
+
+	@Test
+	public void combinateTest() {
+		
+		System.out.println(PlayerType.ACE.compareTo(PlayerType.MONSTER));
+		System.out.println(PlayerType.ACE.compareTo(PlayerType.SPECIAL));
+		System.out.println(PlayerType.ACE.compareTo(PlayerType.NORMAL));
+		System.out.println(PlayerType.MONSTER.compareTo(PlayerType.SPECIAL));
+		System.out.println(PlayerType.MONSTER.compareTo(PlayerType.NORMAL));
+		System.out.println(PlayerType.SPECIAL.compareTo(PlayerType.NORMAL));
+
 //		System.out.println("ACE 100%");
 //		playerTypeTest(new ArrayList<>(Arrays.asList(PlayerType.ACE, PlayerType.ACE, PlayerType.ACE, PlayerType.ACE)));
 //		
@@ -42,10 +60,8 @@
 //		
 //		System.out.println("ACE 제외 33%");
 //		playerTypeTest(new ArrayList<>(Arrays.asList(PlayerType.ACE, PlayerType.MONSTER, PlayerType.SPECIAL, PlayerType.NORMAL)));
-//	}
-//	
-//	
-//	
+	}
+
 //	public void playerTypeTest(List<PlayerType> pts) {
 //		
 //		int cnt = 30000;
@@ -104,6 +120,5 @@
 //	public void testPlayer() {
 //		//List<Player>
 //	}
-//
-//	
-//}
+
+}

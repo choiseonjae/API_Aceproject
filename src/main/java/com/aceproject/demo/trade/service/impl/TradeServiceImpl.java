@@ -1,5 +1,6 @@
 package com.aceproject.demo.trade.service.impl;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,9 +21,9 @@ import com.aceproject.demo.common.model.TeamPlayer;
 import com.aceproject.demo.common.service.AccountService;
 import com.aceproject.demo.trade.exception.AlreadyTradedPlayerException;
 import com.aceproject.demo.trade.exception.NotEnoughConditionPlayerException;
-import com.aceproject.demo.trade.model.TradeCombinator;
 import com.aceproject.demo.trade.model.TradeOption;
 import com.aceproject.demo.trade.model.TradePlayerView;
+import com.aceproject.demo.trade.model.combinator.TradeCombinator;
 import com.aceproject.demo.trade.service.TradeService;
 
 @Service
@@ -36,7 +37,7 @@ public class TradeServiceImpl implements TradeService {
 
 	@Autowired
 	private PersonDao personDao;
-	
+
 	@Autowired
 	private AccountService accountService;
 
@@ -45,17 +46,22 @@ public class TradeServiceImpl implements TradeService {
 	@Override
 	public List<TradePlayerView> getTradePlayers(int teamId) {
 
-		// 모든 사람 정보를 가져와서 teamPlayer의 사람 정보만을 추출
-		List<Person> persons = personDao.getAll();
-		Map<Integer, Person> selectedPersonsMap = persons.stream()
-				.collect(Collectors.toMap(p -> p.getPersonId(), p -> p));
-
 		// 팀이 현재 보유하고 있는 player를 가져와서 client view 형태로 반환
 		List<TeamPlayer> teamPlayers = teamPlayerDao.list(teamId);
+
+		// 해당 team이 소유한 player 만 조회
 		List<Integer> teamPlayerIds = teamPlayers.stream().map(s -> s.getPlayerId()).collect(Collectors.toList());
 		List<Player> players = playerDao.list(teamPlayerIds);
 
-		return players.stream().map(p -> new TradePlayerView(selectedPersonsMap.get(p.getPersonId()), p))
+		// 필요한 perosn 정보만 조회
+		List<Integer> personIds = players.stream().map(Player::getPersonId).distinct().collect(Collectors.toList());
+		List<Person> persons = personDao.list(personIds);
+
+		// persondId -> person 매핑
+		Map<Integer, Person> personMap = new HashMap<Integer, Person>();
+		persons.stream().collect(Collectors.toMap(Person::getPersonId, p -> p));
+
+		return players.stream().map(p -> new TradePlayerView(personMap.get(p.getPersonId()), p))
 				.collect(Collectors.toList());
 
 	}
@@ -71,12 +77,20 @@ public class TradeServiceImpl implements TradeService {
 		// 예외 : 필요한 년도 설정 수 확인
 		option.checkYearException();
 
+		// cash, ap 차감 시 cash 및 ap 보유 여부 확인 후 차감
+		if (option.getPercentCash() != 0)
+			accountService.deductCash(teamId, option.getPercentCash());
+		if (option.getCostUpAP() != 0)
+			accountService.deductAp(teamId, option.getCostUpAP());
+
 		// 예외 : 트레이드 할 선수 목록을 현재 플레이어가 소유 여부 확인
-		Set<Integer> playerIdSet = teamPlayerDao.list(teamId).stream().map(p -> p.getPlayerId()).collect(Collectors.toSet());
-		playerIds.forEach(p -> {
-			if (!playerIdSet.contains(p))
-				throw new AlreadyTradedPlayerException();
-		});
+		Set<Integer> playerIdSet = teamPlayerDao.list(teamId).stream().map(TeamPlayer::getPlayerId).collect(Collectors.toSet());
+		boolean notExist = playerIds.stream().anyMatch(pId -> !playerIdSet.contains(pId));
+		if (notExist)
+			throw new AlreadyTradedPlayerException();
+
+		// 선수들에 대한 아이디를 받아 팀플레이어에서 삭제
+		teamPlayerDao.delete(teamId, playerIds);
 
 		// 조합법에 따라 선수를 뽑음
 		Player selectedPlayer = selectPlayer(playerIds, option);
@@ -84,11 +98,6 @@ public class TradeServiceImpl implements TradeService {
 		// 선택한 선수 DB에 반영
 		TeamPlayer teamPlayer = new TeamPlayer(teamId, selectedPlayer.getPlayerId());
 		addTeamPlayer(teamPlayer);
-		
-		accountService.deductCash(teamId, option.getDeductCash());
-
-		// 선수들에 대한 아이디를 받아 팀플레이어에서 삭제
-		teamPlayerDao.delete(teamId, playerIds);
 
 		// client view 형태로 반환
 		Person person = personDao.get(selectedPlayer.getPersonId());
@@ -96,18 +105,17 @@ public class TradeServiceImpl implements TradeService {
 
 	}
 
+	private TradeCombinator combinator = new TradeCombinator();
+
 	private Player selectPlayer(List<Integer> playerIds, TradeOption option) {
 
-		// TODO DB콜 줄이기 vs 두번 조회하기 뭐가 더 좋은가?
 		// 해당 하는 연도의 선수만 조회
 		List<Player> yearPlayers = playerDao.yearList(option.getYears());
-		
+
 		// 트레이드 재료인 선수들을 조합하여 하나의 등급을 선택
 		List<Player> players = playerDao.list(playerIds);
 
-		// 선택된 등급 && 재료로 사용된 플레이어 중 필터
-		TradeCombinator combinator = new TradeCombinator(players, option); 
-		Predicate<Player> tradeFilter = combinator.tradeFilter();
+		Predicate<Player> tradeFilter = combinator.tradeFilter(players, option);
 		Predicate<Player> playerFilter = p -> !playerIds.contains(p.getPlayerId());
 		yearPlayers = yearPlayers.stream().filter(playerFilter.and(tradeFilter)).collect(Collectors.toList());
 
@@ -122,7 +130,7 @@ public class TradeServiceImpl implements TradeService {
 
 	private void addTeamPlayer(TeamPlayer teamPlayer) {
 		TeamPlayer check = teamPlayerDao.get(teamPlayer.getTeamId(), teamPlayer.getPlayerId());
-		if (check == null) 
+		if (check == null)
 			teamPlayerDao.insert(teamPlayer);
 		else {
 			teamPlayer.levelUp();

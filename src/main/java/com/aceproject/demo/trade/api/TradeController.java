@@ -28,7 +28,7 @@ public class TradeController {
 
 	@PostMapping("")
 	public TradePlayerView trade(@RequestParam int teamId, @RequestParam List<Integer> playerIds,
-			@RequestParam(required = false) Set<Integer> years, @RequestParam Boolean percentUp,
+			@RequestParam(required = false) Set<Integer> years, @RequestParam boolean percentUp,
 			@RequestParam boolean costUp) {
 		return tradeService.trade(teamId, playerIds, new TradeOption(years, percentUp, costUp));
 	}

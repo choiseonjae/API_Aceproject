@@ -31,6 +31,9 @@ public class PlayerDaoMybatis extends CommonDaoSupport implements PlayerDao {
 	
 	@Override
 	public List<Player> yearList(Set<Integer> years) {
+		if(years == null || years.isEmpty())
+			return getAll();
+		
 		Map<String, Object> params = new HashMap<>();
 		params.put("years", years);
 		

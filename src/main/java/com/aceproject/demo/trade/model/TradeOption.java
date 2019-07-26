@@ -15,7 +15,12 @@ public class TradeOption {
 	private boolean percentUp;
 	private boolean costUp;
 	
-	private static final int UP_CASH = 10;
+	// cost up 시 지불해야 하는 ap
+	private static final int COST_UP_AP= 100;
+	// percent up 시 지불해야 하는 cash
+	private static final int PERCENT_UP_CASH = 10;
+	// 증가 확률
+	private static final int PERCENT_UP = 10;
 	private static final int MIN_YEAR_COUNT = 2;
 	private static final int MAX_COST_AVG = 8;
 	
@@ -31,16 +36,20 @@ public class TradeOption {
 		}
 	}
 
-	public int getDeductCash() {
-		int cash = 0;
-		if(percentUp)
-			cash += UP_CASH;
-		if(costUp)
-			cash += UP_CASH;
-		return cash;
+	public int getPercentCash() {
+		return percentUp ? PERCENT_UP_CASH : 0;
+	}
+	
+	public int getCostUpAP() {
+		return costUp ? COST_UP_AP : 0;
 	}
 	
 	public static int costUp(int cost) {
 		return Math.min(cost + 1, MAX_COST_AVG);
+	}
+	
+
+	public int getPercent(int percent) {
+		return percentUp ? percent + PERCENT_UP : percent;
 	}
 }
