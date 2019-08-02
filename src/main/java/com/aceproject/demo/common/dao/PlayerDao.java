@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.aceproject.demo.common.model.Player;
-import com.aceproject.demo.trade.model.PlayerType;
 
 public interface PlayerDao {
 

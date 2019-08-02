@@ -1,6 +1,5 @@
 package com.aceproject.demo.trade.service.impl;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,11 +54,10 @@ public class TradeServiceImpl implements TradeService {
 
 		// 필요한 perosn 정보만 조회
 		List<Integer> personIds = players.stream().map(Player::getPersonId).distinct().collect(Collectors.toList());
-		List<Person> persons = personDao.list(personIds);
-
+		List<Person> people = personDao.list(personIds);
+	
 		// persondId -> person 매핑
-		Map<Integer, Person> personMap = new HashMap<Integer, Person>();
-		persons.stream().collect(Collectors.toMap(Person::getPersonId, p -> p));
+		Map<Integer, Person> personMap = people.stream().collect(Collectors.toMap(Person::getPersonId, p -> p));
 
 		return players.stream().map(p -> new TradePlayerView(personMap.get(p.getPersonId()), p))
 				.collect(Collectors.toList());
@@ -111,7 +109,7 @@ public class TradeServiceImpl implements TradeService {
 
 		// 해당 하는 연도의 선수만 조회
 		List<Player> yearPlayers = playerDao.yearList(option.getYears());
-
+		
 		// 트레이드 재료인 선수들을 조합하여 하나의 등급을 선택
 		List<Player> players = playerDao.list(playerIds);
 
@@ -119,6 +117,10 @@ public class TradeServiceImpl implements TradeService {
 		Predicate<Player> playerFilter = p -> !playerIds.contains(p.getPlayerId());
 		yearPlayers = yearPlayers.stream().filter(playerFilter.and(tradeFilter)).collect(Collectors.toList());
 
+		for(Player p : yearPlayers) {
+			System.out.println(p.getPlayerId() + " : ");
+		}
+		
 		// 예외 : 필터 후 영입 가능한 선수가 존재 하지 않는 경우
 		if (yearPlayers.isEmpty())
 			throw new NotEnoughConditionPlayerException();

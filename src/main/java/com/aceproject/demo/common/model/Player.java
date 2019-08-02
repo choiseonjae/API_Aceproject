@@ -3,10 +3,12 @@ package com.aceproject.demo.common.model;
 import com.aceproject.demo.trade.model.PlayerType;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class Player extends Dto {
 	private int playerId;
 	private int personId;
@@ -15,7 +17,7 @@ public class Player extends Dto {
 	private int year;
 	private PlayerType playerType;
 	
-	public void setPlayerType(int playerType) {
-		this.playerType = PlayerType.valueOf(playerType);
+	public Player(PlayerType type) {
+		playerType = type;
 	}
 }
